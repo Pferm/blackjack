@@ -1,0 +1,197 @@
+import random
+
+# Programa que simula el comportamiento BlackJack
+
+class Carta:
+    def __init__(self,palo,rango):
+        self.palo=palo
+        self.rango =rango
+
+    def __str__(self):
+        return f"{self.rango['rango']} de {self.palo}"
+class Mazo:
+    def __init__(self):
+        self.cartas = []
+        palos = ["picas","corazones","diamante","trebol"]
+        rangos =[
+            {"rango":"A","valor":11},
+            {"rango":"2","valor":2},
+            {"rango":"3","valor":3},
+            {"rango":"4","valor":4},
+            {"rango":"5","valor":5},
+            {"rango":"6","valor":6},
+            {"rango":"7","valor":7},
+            {"rango":"8","valor":8},
+            {"rango":"9","valor":9},
+            {"rango":"10","valor":10},
+            {"rango":"J","valor":10},
+            {"rango":"Q","valor":10},
+            {"rango":"K","valor":10},
+                ]
+
+        for palo in palos:
+            for rango in rangos:
+                self.cartas.append(Carta(palo,rango))
+
+    def mezclar(self):
+        if len(self.cartas)>1:
+            random.shuffle(self.cartas)
+
+    def deal(self, numero):
+        carta_dealt = []
+        for i in range(numero):
+            if len(self.cartas) > 0:
+                carta = self.cartas.pop()
+                carta_dealt.append(carta)
+        return carta_dealt
+
+
+class Mano:
+    def __init__(self,dealer=False):
+        self.cartas=[]
+        self.valor =0
+        self.dealer = dealer
+
+    def agrega_carta(self,carta_list):
+        self.cartas.extend(carta_list)
+
+    def calc_valor(self):
+        self.valor=0
+        tiene_as = False
+
+        for carta in self.cartas:
+
+            valor_carta = int(carta.rango["valor"])
+            self.valor += valor_carta
+            if carta.rango["rango"] =="A":
+                tiene_as = True
+
+        if tiene_as and self.valor>21:
+            self.valor -=10
+
+    def obtener_valor(self):
+        self.calc_valor()
+        return self.valor
+
+    def es_blackjack(self):
+        return self.obtener_valor() ==21
+
+    def mostrar(self,mostrarall_cartas_dealer = False):
+        print(f'''{"Dealer" if self.dealer else "Tu mano"}''')
+        for index,carta in enumerate(self.cartas):
+            if index == 0 and self.dealer and not mostrarall_cartas_dealer and not self.es_blackjack():
+                print("Oculta")
+            else:
+                print(carta)
+
+
+
+
+        if not self.dealer:
+            print("Valor:", self.obtener_valor())
+        print()
+
+class Game:
+    def jugar(self):
+        numero_juego = 0
+        juegos_a_jugar = 0
+        while juegos_a_jugar <= 0:
+            try:
+                juegos_a_jugar = int(input("Cuantos juegos queres jugar?"))
+
+            except:
+                print("Debes ingresar un numero")
+
+        while numero_juego < juegos_a_jugar:
+            numero_juego += 1
+
+            mazo1=Mazo()
+            mazo1.mezclar()
+
+            mano_jugador = Mano()
+            mano_dealer = Mano(dealer=True)
+
+            #agrega carta a la mano del jugar y dealer
+
+            for i in range(2):
+                mano_jugador.agrega_carta(mazo1.deal(1))
+                mano_dealer.agrega_carta(mazo1.deal(1))
+
+            print()
+            print("*"*40)
+            print(f'Juego {numero_juego} de {juegos_a_jugar}')
+            print("*" * 40)
+            mano_jugador.mostrar()
+            mano_dealer.mostrar()
+
+            if self.verifica_ganador(mano_jugador, mano_dealer):
+                continue
+
+            eleccion =""
+            while mano_jugador.obtener_valor()<21 and eleccion not in ["s","stop"]:
+                eleccion = input("Seleccione Pedir o Stop (P/S):").lower()
+                while eleccion not in ["pedir","p","stop","s"]:
+                    eleccion = input("Seleccione Pedir o Stop (P/S):").lower()
+                    print()
+
+                if eleccion in ["pedir","p"]:
+                    mano_jugador.agrega_carta(mazo1.deal())
+                    mano_jugador.mostrar()
+
+            if self.verifica_ganador(mano_jugador, mano_dealer):
+                continue
+
+            mano_jugador_valor = mano_jugador.obtener_valor()
+            mano_dealer_valor = mano_dealer.obtener_valor()
+
+
+            while mano_dealer_valor < 17:
+                mano_dealer.agrega_carta(mazo1.deal(1))
+                mano_jugador_valor = mano_dealer.obtener_valor()
+
+            mano_dealer.mostrar(mostrarall_cartas_dealer=True)
+
+            if self.verifica_ganador(mano_jugador, mano_dealer):
+                continue
+
+            print("Resultados Finales")
+            print("Tu mano" + mano_jugador_valor)
+            print("Mano Dealer" + mano_dealer_valor)
+
+            self.verifica_ganador(mano_jugador, mano_dealer, True)
+
+        print("Gracias por Juegar")
+
+    def verifica_ganador(self,mano_jugador, mano_dealer, gameover=False):
+        if not gameover:
+            if mano_jugador.obtener_valor()>21:
+
+                print("Dealer gana!")
+                return True
+            elif mano_dealer.obtener_valor()>21:
+                print("Vos ganaste, dealer se paso de 21")
+                return True
+            elif mano_jugador.es_blackjack() and mano_dealer.es_blackjack():
+                print("Ambos con BlackJack, empate!")
+                return True
+            elif mano_jugador.es_blackjack():
+                print("Tenes BlackJack, ganaste")
+                return True
+            elif mano_dealer.es_blackjack():
+                print("Dealer tiene BlackJack, perdiste")
+                return True
+
+        else:
+            if mano_jugador.obtener_valor() > mano_dealer.obtener_valor():
+                print("Ganaste")
+            elif mano_jugador.obtener_valor() == mano_dealer.obtener_valor():
+                print("Empate")
+            else:
+                print("Dealer Gana. Perdiste")
+            return True
+
+        return False
+
+g = Game()
+
+g.jugar()
